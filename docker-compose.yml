@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  email-app:
+    container_name: agiotagem-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: ["python", "send_email.py"]

@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 import smtplib
+import logging
 import requests
 from inspirational_quotes import quote
 from datetime import datetime
@@ -12,19 +13,18 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from email.mime.audio import MIMEAudio
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 def translate_text(text):
     translator = Translator()
     translated = translator.translate(text, dest='pt')
     return translated.text
 
 def send_email(config,msg):
-    print(config)
-    print(msg)
     with smtplib.SMTP(config["smtp_server"], config["smtp_port"]) as smtp:
         smtp.starttls()
         smtp.login(config['user'], config['password'])
         smtp.send_message(msg)
-    print("E-mail enviado com sucesso!")
+    logging.info(f"Email enviado para {msg['To']} com sucesso!")
 
 def get_quote():
     return quote().get("quote")
@@ -66,7 +66,7 @@ def get_configs():
             }
 
 def get_receivers():
-    return ["yang.ferreira2023@gmail.com"]
+    return ["bruedu.cp16@gmail.com"]
 
 def create_MIMEImage(image):
     img = MIMEImage(image)
@@ -91,7 +91,6 @@ def create_text(texts):
         default = f"Já se passaram {remain} dias desde o dia do pagamento"
     for text in texts:
         default += "\n\n" + text
-    print(default)
     return default
 
 def create_message(MIMEs, configs, receiver):
@@ -106,16 +105,22 @@ def create_message(MIMEs, configs, receiver):
 
 async def send_monthly_email():
     config = get_configs()
+    
+    logging.info("Iniciando o envio do email")
 
     adtionals = []
     adtionals.append(translate_text(get_quote()))
     body = create_text(adtionals)
 
     MIMEs = []
-    #TODO: encontrar uma forma do audio funcionar
     MIMEs.append(create_mime_audio(get_audio_freesound(config)))
+    logging.info("Áudio de risada obtido com sucesso")
+
     MIMEs.append(MIMEText(body, "plain"))
+    logging.info("Texto do email criado com sucesso")
+    
     MIMEs.append(create_MIMEImage(get_imgmeme()))
+    logging.info("Meme obtido com sucesso") 
 
     for receiver in get_receivers():
         msg = create_message(MIMEs, config, receiver)
