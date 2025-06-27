@@ -27,10 +27,10 @@ def send_email(config,msg):
     logging.info(f"Email enviado para {msg['To']} com sucesso!")
 
 def get_quote():
-    return quote().get("quote")
+    return quote()["quote"]
 
 def get_audio_freesound(configs):
-    key = configs.get("freesound_api_key")
+    key = configs["freesound_api_key"]
     if not key:
         raise RuntimeError("FREESOUND_API_KEY não definido no ambiente")
     params = {
