@@ -33,7 +33,7 @@ def get_audio_freesound(configs):
     if not key:
         raise RuntimeError("FREESOUND_API_KEY não definido no ambiente")
     params = {
-        "query": "laugh",
+        "query": "scary laugh",
         "fields": "previews",
         "page_size": 1,
         "token": key
@@ -87,9 +87,9 @@ def get_configs():
 def get_receivers():
     return ["bruedu.cp16@gmail.com"]
 
-def create_MIMEImage(image):
+def create_MIMEImage(image, name= "meme", extension= "jpg"):
     img = MIMEImage(image)
-    img.add_header("Content-Disposition", 'attachment; filename="meme.jpg"')
+    img.add_header("Content-Disposition", f'attachment; filename={name}{extension}')
     return img
 
 def create_mime_audio(audio_bytes, filename="risada.mp3"):
