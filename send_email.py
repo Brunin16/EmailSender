@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
 import smtplib
 import logging
 import requests
@@ -41,13 +40,32 @@ def get_audio_freesound(configs):
     }
     resp = requests.get(configs["freesound_search_url"], params=params)
     resp.raise_for_status()
-    results = resp.json().get("results", [])
+    results = resp.json()["results"]
     if not results:
         raise RuntimeError("Nenhum áudio encontrado no Freesound")
     audio_url = results[0]["previews"]["preview-hq-mp3"]
     audio_resp = requests.get(audio_url)
     audio_resp.raise_for_status()
     return audio_resp.content
+
+def get_images():
+    image_dir = "./images"
+    images_data = []
+
+    for file in os.listdir(image_dir):
+        filepath = os.path.join(image_dir, file)
+
+        if os.path.isfile(filepath):
+            name, extension = os.path.splitext(file)
+            with open(filepath, "rb") as f:
+                data = f.read()
+                images_data.append({
+                    "name": name,
+                    "extension": extension,
+                    "data": data
+                })
+
+    return images_data
 
 def get_imgmeme():
     meme_resp = requests.get(os.getenv("MEME_API_URL"))
@@ -56,6 +74,7 @@ def get_imgmeme():
     return requests.get(meme_url).content
 
 def get_configs():
+    load_dotenv()
     return {
             "user":        os.getenv("USER_EMAIL"),
             "password":    os.getenv("PASS_EMAIL"),
@@ -121,10 +140,28 @@ async def send_monthly_email():
     
     MIMEs.append(create_MIMEImage(get_imgmeme()))
     logging.info("Meme obtido com sucesso") 
+    images = get_images()
+    for image in images:
+        MIMEs.append(create_MIMEImage(image["data"], image["name"], image["extension"]))
+    logging.info("Imagens obtidas com sucesso") 
 
     for receiver in get_receivers():
         msg = create_message(MIMEs, config, receiver)
         send_email(config,msg)
-
+async def main():
+    max_retries = 3
+    delay = 10
+    for attempt in range(1, max_retries + 1):
+        try:
+            await send_monthly_email()
+            break
+        except smtplib.SMTPException as e:
+            logging.info(f"Falha na tentativa {attempt}: {e}")
+            if attempt < max_retries:
+                logging.warning(f"Aguardando {delay} segundos antes da próxima tentativa...")
+                await asyncio.sleep(delay)
+                delay *= 2
+            else:
+                logging.error("Número máximo de tentativas atingido. Abortando.")
 if __name__ == "__main__":
-    asyncio.run(send_monthly_email())
+    asyncio.run(main())
